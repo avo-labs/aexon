@@ -1,3 +1,38 @@
+pragma solidity 0.4.17;
+
+
+/**
+ * @title SafeMath
+ * @dev Math operations with safety checks that throw on error
+ */
+library SafeMath {
+  function mul(uint256 a, uint256 b) internal constant returns (uint256) {
+    uint256 c = a * b;
+    assert(a == 0 || c / a == b);
+    return c;
+  }
+
+  function div(uint256 a, uint256 b) internal constant returns (uint256) {
+    // assert(b > 0); // Solidity automatically throws when dividing by 0
+    uint256 c = a / b;
+    // assert(a == b * c + a % b); // There is no case in which this doesn't hold
+    return c;
+  }
+
+  function sub(uint256 a, uint256 b) internal constant returns (uint256) {
+    assert(b <= a);
+    return a - b;
+  }
+
+  function add(uint256 a, uint256 b) internal constant returns (uint256) {
+    uint256 c = a + b;
+    assert(c >= a);
+    return c;
+  }
+}
+
+
+/*******************************************************************************************************/
 
 /**
  * @title Crowdsale
@@ -8,12 +43,16 @@
  * as they arrive.
  */
  
+ interface token {
+    function transfer(address receiver, uint amount);
+    function mintToken(address receiver, uint amount);
+}
 
 contract Crowdsale {
   using SafeMath for uint256;
 
   // The token being sold
-  MintableToken public token;
+  //AEXONToken public token;
 
   // start and end timestamps where investments are allowed (both inclusive)
   uint256 public startTime;
@@ -24,9 +63,22 @@ contract Crowdsale {
 
   // how many token units a buyer gets per wei
   uint256 public rate;
+  
+  uint256 public rate6;
+  uint256 public rate5;
+  uint256 public rate4;
+  uint256 public rate3;
+  uint256 public rate2;
+  uint256 public rate1;
+  
 
   // amount of raised money in wei
   uint256 public weiRaised;
+  
+  //address public gravitasWallet;
+  
+  
+  token public tokenReward;
 
   /**
    * event for token purchase logging
@@ -38,25 +90,22 @@ contract Crowdsale {
   event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
 
 
-  function Crowdsale() {
-    //require(_startTime >= now);
-    //endTime = _startTime + _duration;
-    //require(_endTime >= _startTime);
-    //require(_rate > 0);
-    //require(_wallet != 0x0);
+  function Crowdsale
+  (
+        address axnEtherWallet,
+        uint durationInMinutes,
+        uint costOfEachTokenInWei,
+        address addressOfTokenUsedAsReward
+    ) {
+        wallet = axnEtherWallet;
+        startTime = now;
+        endTime = now + durationInMinutes * 1 minutes;
+        rate = costOfEachTokenInWei;
+        tokenReward = token(addressOfTokenUsedAsReward);
+        
+    }
+  
 
-    token = createTokenContract();
-    startTime = now;
-    endTime = startTime + 86400;
-    rate = 300;
-    wallet = address("0x0732707eD02b72ff0026d6d2170407553C34C241");
-  }
-
-  // creates the token to be sold.
-  // override this method to have crowdsale of a specific mintable token.
-  function createTokenContract() internal returns (AEXONToken) {
-    return new AEXONToken();
-  }
 
 
   // fallback function can be used to buy tokens
@@ -70,14 +119,17 @@ contract Crowdsale {
     require(validPurchase());
 
     uint256 weiAmount = msg.value;
-
+    
+ 
+    
+    
     // calculate token amount to be created
     uint256 tokens = weiAmount.mul(rate);
 
     // update state
     weiRaised = weiRaised.add(weiAmount);
 
-    token.mint(beneficiary, tokens);
+    tokenReward.mintToken(beneficiary, tokens);
     TokenPurchase(msg.sender, beneficiary, weiAmount, tokens);
 
     forwardFunds();
